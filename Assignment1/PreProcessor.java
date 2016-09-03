@@ -29,6 +29,7 @@ class PreProcessor implements Runnable {
 			if (qNum != -1) {
 				try {
 					synchronized(outputQueues.get(qNum)) {
+						outputQueues.get(qNum).addLast(0);
 						outputQueues.get(qNum).addLast( Integer.parseInt(inpString, 2) );
 						// System.out.println( outputQueues.get(0).size() + " " + outputQueues.get(1).size() );
 					}

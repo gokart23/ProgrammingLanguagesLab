@@ -16,13 +16,13 @@ public class DataGenerator implements Runnable{
 
 	public void run() {
 		while (true) {
-			//Generate random 8-bit binary string		
+			//Generate random 8-bit binary string		 rng.nextInt(256) 
 			rndString = String.format("%8s", Integer.toBinaryString( rng.nextInt(256) ) ).replace(' ', '0');
 			synchronized(preprocessQueue) {
 				try{
 					preprocessQueue.add(rndString);
 					preprocessQueue.add(generatorNumber.toString());
-					System.out.println("Generator#" + this.generatorNumber + ": Added " + rndString + "(" + preprocessQueue.size() + ")");
+					// System.out.println("Generator#" + this.generatorNumber + ": Added " + rndString + "(" + preprocessQueue.size() + ")");
 				} catch(Exception e) {	e.printStackTrace();	}
 			}
 			try {
