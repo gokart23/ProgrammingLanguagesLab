@@ -1,48 +1,28 @@
-import java.util.*;
+import java.util.Queue;
+import java.util.Deque;
+import java.util.ArrayList;
+import java.util.LinkedList;
 
 public class Part1_1 {
 	static final int NUM_GENERATOR = 10;
+	static final int NUM_PROCESSOR = 3;
 	public static void main(String[] args) {
+		PreProcessor preProcessor;
 		Queue<String> preprocessQueue = new LinkedList<String>();
 		DataGenerator[] generators = new DataGenerator[NUM_GENERATOR];
+		ArrayList< Deque<Integer> > outputQueues = new ArrayList<Deque<Integer>>();
 
 		System.out.println("Main thread started");
 
 		for(int i = 0; i < NUM_GENERATOR; i++) {
 			generators[i] = new DataGenerator(preprocessQueue, i);
+			outputQueues.add(new LinkedList<Integer>());
+		}
+		preProcessor = new PreProcessor(preprocessQueue, outputQueues);
+
+		(new Thread(preProcessor)).start();
+		for (int i = 0; i < NUM_GENERATOR; i++)
 			(new Thread(generators[i])).start();
-		}
 	}
 }
 
-
-class DataGenerator implements Runnable{
-	private final Queue<String> preprocessQueue;
-	private final Integer generatorNumber;
-	private Random rng;
-	private String rndString;
-
-	public DataGenerator(Queue<String> preprocessQueue, int generatorNumber) {
-		this.preprocessQueue = preprocessQueue;	
-		this.generatorNumber = generatorNumber;
-		this.rng = new Random();
-		this.rndString = "";
-	}
-
-	public void run() {
-		while (true) {
-			//Generate random 8-bit binary string		
-			rndString = String.format("%8s", Integer.toBinaryString( rng.nextInt(256) ) ).replace(' ', '0');
-			synchronized(preprocessQueue) {
-				try{
-					preprocessQueue.add(rndString);
-					preprocessQueue.add(generatorNumber.toString());
-					// System.out.println("Generator#" + this.generatorNumber + ": Added " + rndString + "(" + preprocessQueue.size() + ")");
-				} catch(Exception e) {	e.printStackTrace();	}
-			}
-			try {
-				Thread.sleep(100);
-			} catch(InterruptedException e) {}
-		}
-	}
-}
