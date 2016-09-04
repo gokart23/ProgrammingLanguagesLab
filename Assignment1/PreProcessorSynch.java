@@ -3,13 +3,13 @@ import java.util.Deque;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
-class PreProcessor implements Runnable {
+class PreProcessorSynch implements Runnable {
 	private final Queue<String> preprocessQueue;
 	private final ArrayList<Deque<Integer>> outputQueues;
 	private String inpString;
 	private int qNum;
 
-	public PreProcessor(Queue<String> preprocessQueue, ArrayList<Deque<Integer>> outputQueues) {
+	public PreProcessorSynch(Queue<String> preprocessQueue, ArrayList<Deque<Integer>> outputQueues) {
 		this.preprocessQueue = preprocessQueue;
 		this.outputQueues = outputQueues;
 		this.inpString = "";

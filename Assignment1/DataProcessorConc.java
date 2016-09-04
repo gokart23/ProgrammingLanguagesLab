@@ -1,17 +1,20 @@
-import java.util.Queue;
 import java.util.Deque;
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.concurrent.locks.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 
-public class DataProcessor implements Runnable {
+public class DataProcessorConc implements Runnable {
 	private static final int[] THRESHOLD = {100, 100000, 10000};
 
 	private final int MODE, NUM_GENERATOR;
+	private final Lock[] outputLocks;
 	private final ArrayList<Deque<Integer>> outputQueues;
 	private int output, cycle;
 
-	public DataProcessor(ArrayList<Deque<Integer>> outputQueues, int mode, int num_generator) {
+	public DataProcessorConc(ArrayList<Deque<Integer>> outputQueues, Lock[] outputLocks, int mode, int num_generator) {
 		this.outputQueues = outputQueues;
+		this.outputLocks = outputLocks;
 		this.MODE = mode;
 		this.cycle = 0;
 		this.NUM_GENERATOR = num_generator;
@@ -23,26 +26,25 @@ public class DataProcessor implements Runnable {
 		else				add();
 	}
 
-	private int getValSynchronized(int idx) {
+	private int getValConc(int idx) {
 		int count=0, res=-1;
-		synchronized(outputQueues.get(idx)) {
-			if (outputQueues.get(idx).size() > 0) {
-				count = outputQueues.get(idx).removeFirst();
-				res = outputQueues.get(idx).removeFirst();				
+		outputLocks[idx].lock();
+		if (outputQueues.get(idx).size() > 0) {
+			count = outputQueues.get(idx).removeFirst();
+			res = outputQueues.get(idx).removeFirst();				
 
-				if ( (count & (1 << MODE)) == 0)
-					count = count | (1 << MODE);									
-				else res = -1;
-				
-				if ( (count+1) != (1 << 3) ) {
-					outputQueues.get(idx).addFirst(res);
-					outputQueues.get(idx).addFirst(count);
-				}
-				// else System.out.println("\t\t\tPopped " + res);
-
-				// System.out.println("\t\tgetValSynch:\t (" + MODE + ") count " + count + " res " + res);
+			if ( (count & (1 << MODE)) == 0)
+				count = count | (1 << MODE);									
+			else res = -1;
+			
+			if ( (count+1) != (1 << 3) ) {
+				outputQueues.get(idx).addFirst(res);
+				outputQueues.get(idx).addFirst(count);
 			}
+			// else System.out.println("\t\t\tPopped " + res);
+			// System.out.println("\t\tgetValConc:\t (" + MODE + ") count " + count + " res " + res);
 		}
+		outputLocks[idx].unlock();		
 		return res;
 	} 
 
@@ -52,7 +54,7 @@ public class DataProcessor implements Runnable {
 			sum=0; val=0;
 			try {
 					for (int i = 0; i < NUM_GENERATOR; ) {
-						val = getValSynchronized(i);						
+						val = getValConc(i);						
 						if (val >= 0) {
 							sum += val; 
 							i++;
@@ -76,7 +78,7 @@ public class DataProcessor implements Runnable {
 			prod=1; val=0;
 			try {
 					for (int i = 0; i < NUM_GENERATOR; ) {
-						val = getValSynchronized(i);						
+						val = getValConc(i);						
 						if (val >= 0) {
 							if (prod < THRESHOLD[MODE] || val == 0 )
 								prod *= val;
@@ -101,12 +103,12 @@ public class DataProcessor implements Runnable {
 			sum=0; val=0;
 			try {
 					for (int i = 0; i < NUM_GENERATOR; ) {
-						val = getValSynchronized(i);						
+						val = getValConc(i);						
 						if (val >= 0) {
 							sum += val; 
 							i++;
 						}
-						// System.out.println("\tMean\t" + val + " <- " + i + " // " + sum);
+						// System.out.println("\tAdd\t" + val + " <- " + i + " // " + sum);
 					}
 					if ( sum >= THRESHOLD[MODE] )
 						System.out.println("\t\t#" + cycle + ":State detected from (addition)");

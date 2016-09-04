@@ -1,13 +1,13 @@
 import java.util.Random;
 import java.util.Queue;
 
-public class DataGenerator implements Runnable{
+public class DataGeneratorSynch implements Runnable{
 	private final Queue<String> preprocessQueue;
 	private final Integer generatorNumber;
 	private Random rng;
 	private String rndString;
 
-	public DataGenerator(Queue<String> preprocessQueue, int generatorNumber) {
+	public DataGeneratorSynch(Queue<String> preprocessQueue, int generatorNumber) {
 		this.preprocessQueue = preprocessQueue;	
 		this.generatorNumber = generatorNumber;
 		this.rng = new Random();
