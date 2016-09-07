@@ -1,95 +1,43 @@
-
 package cs431.assignment1;
 
 import java.awt.Color;
+import java.awt.KeyboardFocusManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.util.Stack;
 import java.util.TimerTask;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.SwingUtilities;
 
 /**
  *
  * @author Karthik Meher
  */
-public class Calculator extends javax.swing.JFrame {
-    
+public class Calculator extends javax.swing.JFrame implements KeyListener {
+
     private static final int CHANGE_TIMEOUT = 1000;
     private static final int NUM_BUTTONS = 12;
     private static final int FUNC_BUTTONS = 5;
     private static final int NUM_HIGHLIGHT = 0, FUNC_HIGHLIGHT = 1;
+
     private static Color bgColor;
-    
+
+    private Stack<String> operatorStack, operandStack;
+
     private JButton[] numButtons;
     private JButton[] funcButtons;
-    
+
     private ButtonHighlighter numHighlighter, funcHighlighter;
     private volatile Integer currChange = 0, funcChange = 0;
-        
-    private class ButtonHighlighter implements Runnable {
-        
-        private final int MODE;
-        private java.util.Timer changeTimer;  
-        
-        
-        private final Runnable changeColourNum = new Runnable() {
-                    @Override
-                    public void run() {                        
-                        System.out.println ("Responding to number colour change in " + Thread.currentThread().getName());
-                        numButtons[currChange].setBackground(bgColor);
-                        currChange = (++currChange)%NUM_BUTTONS;
-                        numButtons[currChange].setBackground(Color.red);
-                    }
-                };
-        
-        private final Runnable changeColourFunc = new Runnable() {
-                    @Override
-                    public void run() {                        
-                        System.out.println ("Responding to function colour change in " + Thread.currentThread().getName());
-                        funcButtons[funcChange].setBackground(bgColor);
-                        funcChange = (++funcChange)%FUNC_BUTTONS;
-                        funcButtons[funcChange].setBackground(Color.blue);
-                    }
-                };
-        
-        @Override
-        public void run() {
-            changeTimer = new java.util.Timer();
-            
-            if (this.MODE == 0) {
-                changeTimer.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    try {
-                        SwingUtilities.invokeAndWait(changeColourNum);
-                        System.out.println ("Invoked number colour change from " + Thread.currentThread().getName());
-                    } catch( Exception ex ) { ex.printStackTrace(); }
-                }
-               }, 100, CHANGE_TIMEOUT);
-            }
-            else {
-                changeTimer.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    try {
-                        SwingUtilities.invokeAndWait(changeColourFunc);
-                        System.out.println ("Invoked function colour change from " + Thread.currentThread().getName());
-                    } catch( Exception ex ) { ex.printStackTrace(); }
-                }
-               }, 100, CHANGE_TIMEOUT);
-            }     
-        }
-        
-        public ButtonHighlighter (int MODE) {
-            this.MODE = MODE;
-        }       
-    }
-    
+
     /**
      * Creates new form Calculator
      */
     public Calculator() {
-        initComponents();         
+        initComponents();
         // <editor-fold defaultstate="collapsed" desc="Reference array creation">                          
         numButtons = new JButton[12];
         funcButtons = new JButton[5];
@@ -103,8 +51,8 @@ public class Calculator extends javax.swing.JFrame {
         numButtons[6] = button7;
         numButtons[7] = button8;
         numButtons[8] = button9;
-        numButtons[11] = buttonDot;
-        numButtons[9] = buttonNegate;
+        numButtons[11] = buttonRPar;
+        numButtons[9] = buttonLPar;
 
         funcButtons[3] = buttonDivide;
         funcButtons[1] = buttonMinus;
@@ -112,13 +60,43 @@ public class Calculator extends javax.swing.JFrame {
         funcButtons[0] = buttonPlus;
         funcButtons[4] = buttonRes;
         // </editor-fold>
-        
+
+        operatorStack = new Stack<String>();
+        operandStack = new Stack<String>();
+
         bgColor = button0.getBackground();
         numHighlighter = new ButtonHighlighter(NUM_HIGHLIGHT);
         funcHighlighter = new ButtonHighlighter(FUNC_HIGHLIGHT);
-        
+        displayArea.addKeyListener(this);
+
         (new Thread(numHighlighter)).start();
         (new Thread(funcHighlighter)).start();
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        System.out.println("Pressed " + e.getKeyChar());
+        if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+            String t = "";
+            if (!operandStack.isEmpty()) {
+                t = operandStack.pop();
+            }
+            t += numButtons[currChange].getText();
+            System.out.println(numButtons[currChange].getText() + " : " + t);
+            operandStack.push(t);
+        } else if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+            
+        }
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+
     }
 
     /**
@@ -143,9 +121,9 @@ public class Calculator extends javax.swing.JFrame {
         button7 = new javax.swing.JButton();
         button8 = new javax.swing.JButton();
         button9 = new javax.swing.JButton();
-        buttonNegate = new javax.swing.JButton();
+        buttonLPar = new javax.swing.JButton();
         button0 = new javax.swing.JButton();
-        buttonDot = new javax.swing.JButton();
+        buttonRPar = new javax.swing.JButton();
         jPanel3 = new javax.swing.JPanel();
         buttonPlus = new javax.swing.JButton();
         buttonMinus = new javax.swing.JButton();
@@ -191,43 +169,56 @@ public class Calculator extends javax.swing.JFrame {
         );
 
         jPanel2.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        jPanel2.setFocusable(false);
 
         button1.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         button1.setText("1");
+        button1.setFocusable(false);
 
         button2.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         button2.setText("2");
+        button2.setFocusable(false);
 
         button3.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         button3.setText("3");
+        button3.setFocusable(false);
 
         button4.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         button4.setText("4");
+        button4.setFocusable(false);
 
         button5.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         button5.setText("5");
+        button5.setFocusable(false);
 
         button6.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         button6.setText("6");
+        button6.setFocusable(false);
 
         button7.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         button7.setText("7");
+        button7.setFocusable(false);
 
         button8.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         button8.setText("8");
         button8.setToolTipText("");
+        button8.setFocusable(false);
 
         button9.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         button9.setText("9");
+        button9.setFocusable(false);
 
-        buttonNegate.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
-        buttonNegate.setText("-");
+        buttonLPar.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
+        buttonLPar.setText("(");
+        buttonLPar.setFocusable(false);
 
         button0.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         button0.setText("0");
+        button0.setFocusable(false);
 
-        buttonDot.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
-        buttonDot.setText(".");
+        buttonRPar.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
+        buttonRPar.setText(")");
+        buttonRPar.setFocusable(false);
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -249,11 +240,11 @@ public class Calculator extends javax.swing.JFrame {
                         .addGap(18, 18, 18)
                         .addComponent(button3, javax.swing.GroupLayout.PREFERRED_SIZE, 82, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addComponent(buttonNegate, javax.swing.GroupLayout.PREFERRED_SIZE, 82, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(buttonLPar, javax.swing.GroupLayout.PREFERRED_SIZE, 82, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
                         .addComponent(button0, javax.swing.GroupLayout.PREFERRED_SIZE, 82, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(buttonDot, javax.swing.GroupLayout.PREFERRED_SIZE, 82, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(buttonRPar, javax.swing.GroupLayout.PREFERRED_SIZE, 82, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addComponent(button4, javax.swing.GroupLayout.PREFERRED_SIZE, 82, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
@@ -282,28 +273,34 @@ public class Calculator extends javax.swing.JFrame {
                     .addComponent(button9, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 11, Short.MAX_VALUE)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(buttonNegate, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(buttonLPar, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(button0, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(buttonDot, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(buttonRPar, javax.swing.GroupLayout.PREFERRED_SIZE, 75, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap())
         );
 
         jPanel3.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+        jPanel3.setFocusable(false);
 
         buttonPlus.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         buttonPlus.setText("+");
+        buttonPlus.setFocusable(false);
 
         buttonMinus.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         buttonMinus.setText("-");
+        buttonMinus.setFocusable(false);
 
         buttonDivide.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         buttonDivide.setText("/");
+        buttonDivide.setFocusable(false);
 
         buttonMultiply.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         buttonMultiply.setText("*");
+        buttonMultiply.setFocusable(false);
 
         buttonRes.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
         buttonRes.setText("RES");
+        buttonRes.setFocusable(false);
 
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
@@ -395,12 +392,76 @@ public class Calculator extends javax.swing.JFrame {
         java.awt.EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
-                Calculator newCalculator = new Calculator();                
+                Calculator newCalculator = new Calculator();
+//                newCalculator.addKeyListener(newCalculator.keys);
                 newCalculator.setVisible(true);
             }
         });
     }
 
+    private class ButtonHighlighter implements Runnable {
+
+        private final int MODE;
+        private java.util.Timer changeTimer;
+
+        private final Runnable changeColourNum = new Runnable() {
+            @Override
+            public void run() {
+//                        System.out.println ("Responding to number colour change in " + Thread.currentThread().getName());
+                        System.out.println(KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner());
+                numButtons[currChange].setBackground(bgColor);
+                currChange = (++currChange) % NUM_BUTTONS;
+                numButtons[currChange].setBackground(Color.red);
+            }
+        };
+
+        private final Runnable changeColourFunc = new Runnable() {
+            @Override
+            public void run() {
+//                        System.out.println ("Responding to function colour change in " + Thread.currentThread().getName());
+                funcButtons[funcChange].setBackground(bgColor);
+                funcChange = (++funcChange) % FUNC_BUTTONS;
+                funcButtons[funcChange].setBackground(Color.blue);
+            }
+        };
+
+        @Override
+        public void run() {
+            changeTimer = new java.util.Timer();
+
+            if (this.MODE == 0) {
+                changeTimer.scheduleAtFixedRate(new TimerTask() {
+                    @Override
+                    public void run() {
+                        try {
+                            SwingUtilities.invokeAndWait(changeColourNum);
+//                        System.out.println ("Invoked number colour change from " + Thread.currentThread().getName());
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                }, 100, CHANGE_TIMEOUT);
+            } else {
+                changeTimer.scheduleAtFixedRate(new TimerTask() {
+                    @Override
+                    public void run() {
+                        try {
+                            SwingUtilities.invokeAndWait(changeColourFunc);
+//                        System.out.println ("Invoked function colour change from " + Thread.currentThread().getName());
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                }, 100, CHANGE_TIMEOUT);
+            }
+        }
+
+        public ButtonHighlighter(int MODE) {
+            this.MODE = MODE;
+        }
+    }
+
+    // <editor-fold defaultstate="collapsed" desc="Variables declaration - do not modify ">
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton button0;
     private javax.swing.JButton button1;
@@ -413,11 +474,11 @@ public class Calculator extends javax.swing.JFrame {
     private javax.swing.JButton button8;
     private javax.swing.JButton button9;
     private javax.swing.JButton buttonDivide;
-    private javax.swing.JButton buttonDot;
+    private javax.swing.JButton buttonLPar;
     private javax.swing.JButton buttonMinus;
     private javax.swing.JButton buttonMultiply;
-    private javax.swing.JButton buttonNegate;
     private javax.swing.JButton buttonPlus;
+    private javax.swing.JButton buttonRPar;
     private javax.swing.JButton buttonRes;
     private javax.swing.JTextField displayArea;
     private javax.swing.JFrame jFrame1;
@@ -425,4 +486,5 @@ public class Calculator extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     // End of variables declaration//GEN-END:variables
+    // </editor-fold>
 }
