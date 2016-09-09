@@ -44,72 +44,89 @@ public class DataProcessorSynch implements Runnable {
 	} 
 
 	private void mean() {
-		int sum=0, val=0;
+		long sum=0;
+		Integer[] vals = new Integer[NUM_GENERATOR];
 		while (true) {
-			sum=0; val=0;
+			sum=0;
 			try {
 					for (int i = 0; i < NUM_GENERATOR; ) {
-						val = getValSynchronized(i);						
-						if (val >= 0) {
-							sum += val; 
-							i++;
-						}
+						vals[i] = getValSynchronized(i);
+						if (vals[i] >= 0) i++;						
 					}
-					if ( (sum/NUM_GENERATOR) >= THRESHOLD[MODE] )
-						System.out.println("#" + cycle + ":State detected from (mean)");
+
+					String op = "AVG: #" + (cycle++) + "[";
+					for (Integer val : vals) {
+						sum += val;
+						op += val + ", ";						
+					}
+					sum /= NUM_GENERATOR;
+					op += "] - AVG=" + sum + " ";
+
+					if ( sum >= THRESHOLD[MODE] )
+						op += ":State detected from (avg)";
 					else
-						System.out.println("#" + cycle + ":State not detected from (mean)");
-					cycle++;
-					// System.in.read();
+						op += ":State not detected from (avg)";
+
+					System.out.println(op);
 					Thread.sleep(1000);
 			} catch (Exception e) { e.printStackTrace(); }
-		}
+		}	
 	}
 
 	private void multiply() {
-		long prod=1, val=0;
+		long prod=1;
+		Integer[] vals = new Integer[NUM_GENERATOR];
 		while (true) {
-			prod=1; val=0;
+			prod=1;
 			try {
 					for (int i = 0; i < NUM_GENERATOR; ) {
-						val = getValSynchronized(i);						
-						if (val >= 0) {
-							if (prod < THRESHOLD[MODE] || val == 0 )
-								prod *= val;
-							i++;
-						}						
-						// System.out.println("\tProd\t" + val + " <- " + i + " // " + prod);
+						vals[i] = getValSynchronized(i);
+						if (vals[i] >= 0) i++;						
 					}
+
+					String op = "MUL: #" + (cycle++) + "[";
+					for (Integer val : vals) {
+						if (prod < THRESHOLD[MODE] || val == 0 )
+							prod *= val;
+						op += val + ", ";						
+					}
+					op += "] - ThresholdProd=" + prod + " ";
+
 					if ( prod >= THRESHOLD[MODE] )
-						System.out.println("\t#" + cycle + ":State detected from (product)");
+						op += ":State detected from (product)";
 					else
-						System.out.println("\t#" + cycle + ":State not detected from (product)");
-					cycle++;
-					// System.in.read();
+						op += ":State not detected from (product)";
+
+					System.out.println(op);
 					Thread.sleep(1000);
 			} catch (Exception e) { e.printStackTrace(); }
 		}
 	}
 
 	private void add() {
-		int sum=0, val=0;
+		long sum=0;
+		Integer[] vals = new Integer[NUM_GENERATOR];
 		while (true) {
-			sum=0; val=0;
+			sum=0;
 			try {
 					for (int i = 0; i < NUM_GENERATOR; ) {
-						val = getValSynchronized(i);						
-						if (val >= 0) {
-							sum += val; 
-							i++;
-						}
-						// System.out.println("\tMean\t" + val + " <- " + i + " // " + sum);
+						vals[i] = getValSynchronized(i);
+						if (vals[i] >= 0) i++;						
 					}
+
+					String op = "SUM: #" + (cycle++) + "[";
+					for (Integer val : vals) {
+						sum += val;
+						op += val + ", ";						
+					}
+					op += "] - Sum=" + sum + " ";
+
 					if ( sum >= THRESHOLD[MODE] )
-						System.out.println("\t\t#" + cycle + ":State detected from (addition)");
+						op += ":State detected from (sum)";
 					else
-						System.out.println("\t\t#" + cycle + ":State not detected from (addition)");
-					cycle++;
-					// System.in.read();
+						op += ":State not detected from (sum)";
+
+					System.out.println(op);
 					Thread.sleep(1000);
 			} catch (Exception e) { e.printStackTrace(); }
 		}

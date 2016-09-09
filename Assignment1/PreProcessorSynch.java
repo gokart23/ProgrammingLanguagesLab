@@ -5,13 +5,13 @@ import java.util.LinkedList;
 
 class PreProcessorSynch implements Runnable {
 	private final Queue<String> preprocessQueue;
-	private final ArrayList<Deque<Integer>> outputQueues;
+	private final Deque<Integer> outputQueue;
 	private String inpString;
 	private int qNum;
 
-	public PreProcessorSynch(Queue<String> preprocessQueue, ArrayList<Deque<Integer>> outputQueues) {
+	public PreProcessorSynch(Queue<String> preprocessQueue, Deque<Integer> outputQueue) {
 		this.preprocessQueue = preprocessQueue;
-		this.outputQueues = outputQueues;
+		this.outputQueue = outputQueue;
 		this.inpString = "";
 		this.qNum = -1;
 	}
@@ -28,9 +28,9 @@ class PreProcessorSynch implements Runnable {
 			}
 			if (qNum != -1) {
 				try {
-					synchronized(outputQueues.get(qNum)) {
-						outputQueues.get(qNum).addLast(0);
-						outputQueues.get(qNum).addLast( Integer.parseInt(inpString, 2) );
+					synchronized(outputQueue) {
+						outputQueue.addLast(0);
+						outputQueue.addLast( Integer.parseInt(inpString, 2) );
 						// System.out.println( outputQueues.get(0).size() + " " + outputQueues.get(1).size() );
 					}
 				} catch (Exception e) { e.printStackTrace(); }
