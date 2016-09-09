@@ -5,16 +5,16 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
 class PreProcessorConc implements Runnable {
+	private final Lock outputLock;
 	private final BlockingQueue<String> preprocessQueue;
-	private final Lock[] outputLocks;
-	private final ArrayList<Deque<Integer>> outputQueues;
+	private final Deque<Integer> outputQueue;
 	private String inpString;
 	private int qNum;
 
-	public PreProcessorConc(BlockingQueue<String> preprocessQueue, ArrayList<Deque<Integer>> outputQueues, Lock[] outputLocks) {
+	public PreProcessorConc(BlockingQueue<String> preprocessQueue, Deque<Integer> outputQueue, Lock outputLock) {
 		this.preprocessQueue = preprocessQueue;
-		this.outputQueues = outputQueues;
-		this.outputLocks = outputLocks;
+		this.outputQueue = outputQueue;
+		this.outputLock = outputLock;
 		this.inpString = "";
 		this.qNum = -1;
 	}
@@ -24,10 +24,10 @@ class PreProcessorConc implements Runnable {
 			try{
 				inpString = preprocessQueue.take();
 				qNum = inpString.charAt(0) - '0';
-				outputLocks[qNum].lock();
-					outputQueues.get(qNum).addLast(0);
-					outputQueues.get(qNum).addLast( Integer.parseInt(inpString.substring(1), 2) );
-				outputLocks[qNum].unlock();
+				outputLock.lock();
+					outputQueue.addLast(0);
+					outputQueue.addLast( Integer.parseInt(inpString.substring(1), 2) );
+				outputLock.unlock();
 				// System.out.println( outputQueues.get(0).size() + " " + outputQueues.get(1).size() );								
 			} catch (Exception e) { e.printStackTrace(); }
 		}
