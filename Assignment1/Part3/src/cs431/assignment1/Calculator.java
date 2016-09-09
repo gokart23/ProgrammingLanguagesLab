@@ -6,26 +6,27 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.Scanner;
 import java.util.Stack;
 import java.util.TimerTask;
 import javax.swing.JButton;
 import javax.swing.JComponent;
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 /**
  *
- * @author Karthik Meher
+ * @author Karthik Duddu
  */
 public class Calculator extends javax.swing.JFrame implements KeyListener {
 
-    private static final int CHANGE_TIMEOUT = 1000;
+    private static final int CHANGE_TIMEOUT = 400;
     private static final int NUM_BUTTONS = 12;
-    private static final int FUNC_BUTTONS = 5;
+    private static final int FUNC_BUTTONS = 6;
     private static final int NUM_HIGHLIGHT = 0, FUNC_HIGHLIGHT = 1;
 
     private static Color bgColor;
-
-    private Stack<String> operatorStack, operandStack;
+    private String internalRepresentation = "";
 
     private JButton[] numButtons;
     private JButton[] funcButtons;
@@ -39,8 +40,8 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
     public Calculator() {
         initComponents();
         // <editor-fold defaultstate="collapsed" desc="Reference array creation">                          
-        numButtons = new JButton[12];
-        funcButtons = new JButton[5];
+        numButtons = new JButton[NUM_BUTTONS];
+        funcButtons = new JButton[FUNC_BUTTONS];
         numButtons[10] = button0;
         numButtons[0] = button1;
         numButtons[1] = button2;
@@ -58,11 +59,9 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
         funcButtons[1] = buttonMinus;
         funcButtons[2] = buttonMultiply;
         funcButtons[0] = buttonPlus;
-        funcButtons[4] = buttonRes;
+        funcButtons[5] = buttonRes;
+        funcButtons[4] = buttonClear;
         // </editor-fold>
-
-        operatorStack = new Stack<String>();
-        operandStack = new Stack<String>();
 
         bgColor = button0.getBackground();
         numHighlighter = new ButtonHighlighter(NUM_HIGHLIGHT);
@@ -73,30 +72,137 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
         (new Thread(funcHighlighter)).start();
     }
 
+    private void clearCalc() {
+        internalRepresentation = "";
+        displayArea.setText("");
+    }
+
+    private void getResult() {
+        try {
+            String res = postfixEvaluate(toPostfix(internalRepresentation)).toString();
+            internalRepresentation = res;
+            displayArea.setText(res);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Invalid expression detected! Clearing calculator");
+            clearCalc();
+        }
+
+    }
+
+    private static String toPostfix(String infix) //converts an infix expression to postfix
+    {
+        Stack<String> operators = new Stack<String>();
+        Scanner tokens = new Scanner(infix);
+//        tokens.useDelimiter("\\s*");
+        String postfix = "", symbol = "";
+
+        while (tokens.hasNext()) {
+            if (tokens.hasNextInt()) {
+                postfix += " " + tokens.nextInt() + " ";
+                System.out.println("Added int:" + postfix);
+            } else {
+                symbol = tokens.next().trim();
+                System.out.println("Symbol is: " + symbol);
+                switch (symbol) {
+                    case "(":
+                        operators.push(symbol);
+                        System.out.println("Inside so far:" + postfix);
+                        break;
+                    case ")":
+                        System.out.println("Inside )");
+                        while (!"(".equals(operators.peek())) {
+                            postfix = postfix + " " + operators.pop() + " ";
+                        }
+                        operators.pop();
+                        System.out.println("Postfix so far:" + postfix);
+                        break;
+                    default:
+                        while (!operators.isEmpty() && !("(".equals(operators.peek())) && prec(symbol) <= prec(operators.peek())) {
+                            System.out.println(prec(symbol) + " " + prec(operators.peek()));
+                            System.out.println("Inside so far:" + operators.peek() + " " + ("(".equals(operators.peek())) + " " + (prec(symbol) <= prec(operators.peek())));
+                            postfix = postfix + " " + operators.pop() + " ";
+                        }
+                        operators.push(symbol);
+                        System.out.println("Postfix so far:" + postfix);
+                        break;
+                }
+            }
+        }
+        while (!operators.isEmpty()) {
+            postfix = postfix + " " + operators.pop() + " ";
+        }
+        postfix = postfix.trim();
+        System.out.println("Postfix expression: " + postfix);
+        return postfix;
+    }
+
+    private static int prec(String x) {
+        if ("+".equals(x) || "-".equals(x)) {
+            return 1;
+        }
+        if ("*".equals(x) || "/".equals(x)) {
+            return 2;
+        }
+        return 0;
+    }
+
+    private Integer postfixEvaluate(String exp) {
+        Stack<Integer> operands = new Stack<Integer>();
+        Scanner tokens = new Scanner(exp);
+        while (tokens.hasNext()) {
+            if (tokens.hasNextInt()) {
+                operands.push(tokens.nextInt());
+            } else {
+                int operand_2 = operands.pop();
+                int operand_1 = operands.pop();
+                String op = tokens.next();
+
+                if (op.equals("+")) {
+                    operands.push(operand_1 + operand_2);
+                } else if (op.equals("-")) {
+                    operands.push(operand_1 - operand_2);
+                } else if (op.equals("*")) {
+                    operands.push(operand_1 * operand_2);
+                } else {
+                    operands.push(operand_1 / operand_2);
+                }
+            }
+        }
+        return operands.pop();
+    }
+
     @Override
     public void keyPressed(KeyEvent e) {
         System.out.println("Pressed " + e.getKeyChar());
         if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-            String t = "";
-            if (!operandStack.isEmpty()) {
-                t = operandStack.pop();
+            if (numButtons[currChange] == buttonLPar || numButtons[currChange] == buttonRPar) {
+                internalRepresentation += " " + numButtons[currChange].getText() + " ";
+            } else {
+                internalRepresentation += numButtons[currChange].getText();
             }
-            t += numButtons[currChange].getText();
-            System.out.println(numButtons[currChange].getText() + " : " + t);
-            operandStack.push(t);
+            displayArea.setText(displayArea.getText() + numButtons[currChange].getText());
         } else if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-            
+            if (funcButtons[funcChange] == buttonRes) {
+                getResult();
+            } else if (funcButtons[funcChange] == buttonClear) {
+                clearCalc();
+            } else {
+                internalRepresentation += " " + funcButtons[funcChange].getText() + " ";
+                displayArea.setText(displayArea.getText() + funcButtons[funcChange].getText());
+            }
         }
+        System.out.println("Internal:" + internalRepresentation);
     }
 
     @Override
-    public void keyTyped(KeyEvent e) {
-
+    public void keyTyped(KeyEvent e
+    ) {
     }
 
     @Override
-    public void keyReleased(KeyEvent e) {
-
+    public void keyReleased(KeyEvent e
+    ) {
     }
 
     /**
@@ -130,6 +236,7 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
         buttonDivide = new javax.swing.JButton();
         buttonMultiply = new javax.swing.JButton();
         buttonRes = new javax.swing.JButton();
+        buttonClear = new javax.swing.JButton();
 
         javax.swing.GroupLayout jFrame1Layout = new javax.swing.GroupLayout(jFrame1.getContentPane());
         jFrame1.getContentPane().setLayout(jFrame1Layout);
@@ -302,19 +409,26 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
         buttonRes.setText("RES");
         buttonRes.setFocusable(false);
 
+        buttonClear.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
+        buttonClear.setText("CLEAR");
+        buttonClear.setFocusable(false);
+
         javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
         jPanel3.setLayout(jPanel3Layout);
         jPanel3Layout.setHorizontalGroup(
             jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel3Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                    .addComponent(buttonRes, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel3Layout.createSequentialGroup()
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel3Layout.createSequentialGroup()
                         .addComponent(buttonPlus, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(buttonMinus, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
+                        .addComponent(buttonMinus, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(buttonClear, javax.swing.GroupLayout.PREFERRED_SIZE, 130, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(18, 18, Short.MAX_VALUE)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(buttonRes, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(jPanel3Layout.createSequentialGroup()
                         .addComponent(buttonMultiply, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(buttonDivide, javax.swing.GroupLayout.PREFERRED_SIZE, 57, javax.swing.GroupLayout.PREFERRED_SIZE)))
@@ -330,7 +444,9 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
                     .addComponent(buttonMinus, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(buttonMultiply, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(buttonRes, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGroup(jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(buttonRes, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(buttonClear, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -393,7 +509,6 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
             @Override
             public void run() {
                 Calculator newCalculator = new Calculator();
-//                newCalculator.addKeyListener(newCalculator.keys);
                 newCalculator.setVisible(true);
             }
         });
@@ -408,7 +523,7 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
             @Override
             public void run() {
 //                        System.out.println ("Responding to number colour change in " + Thread.currentThread().getName());
-                        System.out.println(KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner());
+//                System.out.println(KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner());
                 numButtons[currChange].setBackground(bgColor);
                 currChange = (++currChange) % NUM_BUTTONS;
                 numButtons[currChange].setBackground(Color.red);
@@ -473,6 +588,7 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
     private javax.swing.JButton button7;
     private javax.swing.JButton button8;
     private javax.swing.JButton button9;
+    private javax.swing.JButton buttonClear;
     private javax.swing.JButton buttonDivide;
     private javax.swing.JButton buttonLPar;
     private javax.swing.JButton buttonMinus;

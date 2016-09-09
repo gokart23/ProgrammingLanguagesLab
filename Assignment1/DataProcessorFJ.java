@@ -2,12 +2,14 @@ import java.util.Queue;
 import java.util.Deque;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.concurrent.*;
 
-public class DataProcessorSynch implements Runnable {
+public class DataProcessorFJ implements Runnable {
 	private static final int[] THRESHOLD = {100, 100000, 10000};
 
 	private final int MODE, NUM_GENERATOR;
 	private final ArrayList<Deque<Integer>> outputQueues;
+	private final 
 	private int output, cycle;
 
 	public DataProcessorSynch(ArrayList<Deque<Integer>> outputQueues, int mode, int num_generator) {
@@ -113,5 +115,35 @@ public class DataProcessorSynch implements Runnable {
 					Thread.sleep(1000);
 			} catch (Exception e) { e.printStackTrace(); }
 		}
+	}
+}
+
+class MergeSortFJ extends RecursiveTask<Integer[]> {
+
+	private final Integer invokerMode;
+	private Integer[] dataValues;
+
+	public MergeSortFJ(Integer invokerMode, Integer[] dataValues) {
+		this.invokerMode = invokerMode;
+		this.dataValues = dataValues;
+	}
+
+	@Override
+	protected Integer[] compute() {
+		if (dataValues.length == 1)
+			return dataValues;
+		
+		Integer[] firstHalf = Arrays.copyOfRange(dataValues, 0, dataValues.length / 2);
+		Integer[] secondHalf = Arrays.copyOfRange(dataValues, dataValues.length / 2, dataValues.length)
+
+		MergeSortFJ firstSubthread = new MergeSortFJ(this.invokerMode, firstHalf), secondSubthread = new MergeSortFJ(this.invokerMode, secondHalf);
+		invokeAll(firstSubthread, secondSubthread);
+
+		Integer[] firstResult = firstSubthread.join(), secondResult = secondSubthread.join();
+		return combineSorted(firstResult, secondResult);
+	}
+
+	private Integer[] combineSorted(Integer[] first, Integer[] second) {
+		Integer[] mergedArray = new Integer[first.length + second.length];
 	}
 }
