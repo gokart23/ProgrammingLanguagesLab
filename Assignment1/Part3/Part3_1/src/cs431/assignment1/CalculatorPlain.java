@@ -24,10 +24,10 @@ import javax.swing.SwingWorker;
 
 /**
  *
- * Class implementing Calculator GUI, ButtonHighlighter Threads and all
+ * Class implementing CalculatorPlain GUI, ButtonHighlighter Threads and all
  * necessary functionality
  */
-public class Calculator extends javax.swing.JFrame implements KeyListener {
+public class CalculatorPlain extends javax.swing.JFrame implements KeyListener {
 
     // The parameters of execution, specified in the problem
     private static final int CHANGE_TIMEOUT = 600;
@@ -47,9 +47,9 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
     private ButtonHighlighter numHighlighter, funcHighlighter;
 
     // Shared data variables for handling thread states
-    private volatile Integer currChange = 0, funcChange = 0, stopPressed = 0;
+    private volatile Integer currChange = 0, funcChange = 0, stopPressed = 0, currMode = 0;
 
-    /**
+        /**
      * Main function - executed at the start of the program
      *
      *
@@ -69,13 +69,13 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(Calculator.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(CalculatorPlain.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(Calculator.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(CalculatorPlain.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(Calculator.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(CalculatorPlain.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(Calculator.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(CalculatorPlain.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
 
@@ -83,19 +83,19 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
         java.awt.EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
-                Calculator newCalculator = new Calculator();
-                newCalculator.setVisible(true);
+                CalculatorPlain newCalculatorPlain = new CalculatorPlain();
+                newCalculatorPlain.setVisible(true);
             }
         });
     }
 
+    
     /**
-     * Creates new form Calculator
+     * Creates new form CalculatorPlain
      */
-    public Calculator() {
+    public CalculatorPlain() {
         // Initialization of GUI components
         initComponents();
-
         // Initialization of state variables
         bgColor = button0.getBackground();
         numHighlighter = new ButtonHighlighter(NUM_HIGHLIGHT);
@@ -129,6 +129,7 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
 
         (new Thread(numHighlighter)).start();
         (new Thread(funcHighlighter)).start();
+
         // </editor-fold>
     }
 
@@ -278,29 +279,39 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
      * Function for handling and responding to key-press events
      */
     public void keyPressed(KeyEvent e) {
+        System.out.println("Pressed " + e.getKeyChar());
         // If enter has been pressed, then respond by including the highlighted number  in the expression
         if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-            // If parentheses entered, handle internal state appropriately
-            if (numButtons[currChange] == buttonLPar || numButtons[currChange] == buttonRPar) {
-                internalRepresentation += " " + numButtons[currChange].getText() + " ";
-            } else {
-                internalRepresentation += numButtons[currChange].getText();
-            }
-            // Display entered values in textbox
-            displayArea.setText(displayArea.getText() + numButtons[currChange].getText());
-        } // If space has been pressed, then respond by including the highlighted function in the expression
-        else if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-            if (funcButtons[funcChange] == buttonRes) {
-                getResult();
-            } else if (funcButtons[funcChange] == buttonClear) {
-                clearCalc();
-            } else if (funcButtons[funcChange] == buttonStop) {
-                synchronized (stopPressed) {
-                    stopPressed = 1;
+            // Check if currently in number panel and act accordingly
+            if (currMode == 0) {
+                if (numButtons[currChange] == buttonLPar || numButtons[currChange] == buttonRPar) {
+                    internalRepresentation += " " + numButtons[currChange].getText() + " ";
+                } else {
+                    internalRepresentation += numButtons[currChange].getText();
                 }
-            } else {
-                internalRepresentation += " " + funcButtons[funcChange].getText() + " ";
-                displayArea.setText(displayArea.getText() + funcButtons[funcChange].getText());
+                currMode = 1;
+                displayArea.setText(displayArea.getText() + numButtons[currChange].getText());
+            } 
+            // If in function panel, act accordingly
+            else {
+                if (funcButtons[funcChange] == buttonRes) {
+                    getResult();
+                    synchronized (stopPressed) {
+                        stopPressed = 1;
+                    }
+                } else if (funcButtons[funcChange] == buttonClear) {
+                    clearCalc();
+                } else if (funcButtons[funcChange] == buttonStop) {
+                    synchronized (stopPressed) {
+                        stopPressed = 1;
+                    }
+                } else {
+                    internalRepresentation += " " + funcButtons[funcChange].getText() + " ";
+                    displayArea.setText(displayArea.getText() + funcButtons[funcChange].getText());
+                }
+                if (stopPressed != 1) {
+                    currMode = 0;
+                }
             }
         }
         System.out.println("Internal:" + internalRepresentation);
@@ -638,8 +649,8 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
                             synchronized (stopPressed) {
                                 sP = stopPressed;
                             }
-                            // If not, execute the highlight event synchronously on the EDT
                             if (sP == 0) {
+                            // If not, execute the highlight event synchronously on the EDT
                                 SwingUtilities.invokeAndWait(changeColourNum);
                             }
                         } catch (Exception ex) {
@@ -665,23 +676,45 @@ public class Calculator extends javax.swing.JFrame implements KeyListener {
         }
 
         // Methods run on the EDT (must be of type Runnable to be executed by invokeAndWait())
-        // changeColourNum: Changes the currently highlighted number field
+        // changeColourNum: Changes the currently highlighted number field if the current mode is 0 (number)
         private final Runnable changeColourNum = new Runnable() {
             @Override
             public void run() {
-                numButtons[currChange].setBackground(bgColor);
-                currChange = (++currChange) % NUM_BUTTONS;
-                numButtons[currChange].setBackground(Color.red);
+                if (currMode == 0) {
+                    if (currChange < 0) {
+                        numButtons[0].setBackground(Color.red);
+                    } else {
+                        numButtons[currChange].setBackground(bgColor);
+                    }
+                    currChange = (++currChange) % NUM_BUTTONS;
+                    numButtons[currChange].setBackground(Color.red);
+                } else {
+                    if (currChange >= 0) {
+                        numButtons[currChange].setBackground(bgColor);
+                    }
+                    currChange = -1;
+                }
             }
         };
 
-        // changeColourFunc: Changes the currently highlighted function field
+        // changeColourFunc: Changes the currently highlighted function field if the current mode is 1 (function)
         private final Runnable changeColourFunc = new Runnable() {
             @Override
             public void run() {
-                funcButtons[funcChange].setBackground(bgColor);
-                funcChange = (++funcChange) % FUNC_BUTTONS;
-                funcButtons[funcChange].setBackground(Color.blue);
+                if (currMode == 1) {
+                    if (funcChange < 0) {
+                        funcButtons[0].setBackground(Color.red);
+                    } else {
+                        funcButtons[funcChange].setBackground(bgColor);
+                    }
+                    funcChange = (++funcChange) % FUNC_BUTTONS;
+                    funcButtons[funcChange].setBackground(Color.blue);
+                } else {
+                    if (funcChange >= 0) {
+                        funcButtons[funcChange].setBackground(bgColor);
+                    }
+                    funcChange = -1;
+                }
             }
         };
     }
