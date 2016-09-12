@@ -38,7 +38,7 @@ public class Part1_1 {
 			preprocessQueues.add(new LinkedList<String>());
 			outputQueues.add(new LinkedList<Integer>());
 			generators[i] = new DataGeneratorSynch(preprocessQueues.get(i), i);
-			preProcessors[i] = new PreProcessorSynch(preprocessQueues.get(i), outputQueues.get(i);
+			preProcessors[i] = new PreProcessorSynch(preprocessQueues.get(i), outputQueues.get(i));
 		}
 		
 		// Initialization of processor thread resources

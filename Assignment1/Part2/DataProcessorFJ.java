@@ -190,6 +190,7 @@ public class DataProcessorFJ implements Runnable {
 			try {
 					// Retrieve values from all output queues
 					// 	If not available at some point, wait until availablefor (int i = 0; i < NUM_GENERATOR; ) {
+					for (int i = 0; i < NUM_GENERATOR; ) {
 						vals[i] = getValSynchronized(i);
 						if (vals[i] >= 0) i++;						
 					}
@@ -201,6 +202,7 @@ public class DataProcessorFJ implements Runnable {
 					vals = mergeTask.join();
 
 					// Calculate sum and output information
+					String op = "SUM: #" + (cycle++) + "[";
 					for (Integer val : vals) {
 						sum += val;
 						op += val + ", ";						
